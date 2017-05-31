@@ -19,6 +19,8 @@
 %% under the License.
 %%
 %%======================================================================
+-compile([{parse_transform, lager_transform}]).
+
 %% log-level
 -define(LOG_LEVEL_DEBUG, 0).
 -define(LOG_LEVEL_INFO,  1).
@@ -100,6 +102,28 @@
         end).
 
 
+-define(lager_handlers(_LogLvl),
+        case _LogLvl of
+            ?LOG_LEVEL_DEBUG ->
+                {ok, [{"info.log", '<=info'},
+                      {"error.log", warning}]};
+            ?LOG_LEVEL_INFO ->
+                {ok, [{"info.log", '=info'},
+                      {"error.log", warning}]};
+            ?LOG_LEVEL_WARN ->
+                {ok, [{"info.log",  none},
+                      {"error.log", warning}]};
+            ?LOG_LEVEL_ERROR ->
+                {ok, [{"info.log",  none},
+                      {"error.log", error}]};
+            ?LOG_LEVEL_FATAL ->
+                {ok, [{"info.log",  none},
+                      {"error.log", critical}]};
+            _ ->
+                {error, badarg}
+        end).
+
+
 -define(log(_ModLevel,_ModuleString,_FuncName,_Line,_Format,_Message),
         begin
             leo_logger_client_message:_ModLevel(#message_log{module   = _ModuleString,
@@ -111,72 +135,122 @@
 
 
 -define(fatal(_Func,_Format,_Message),
-        leo_logger_client_message:fatal(#message_log{level    = ?LOG_LEVEL_FATAL,
-                                                     module   = ?MODULE_STRING,
-                                                     function = _Func,
-                                                     line     = ?LINE,
-                                                     format   = _Format,
-                                                     message  = _Message})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:critical(_Format, _Message);
+            _ ->
+                leo_logger_client_message:fatal(#message_log{level    = ?LOG_LEVEL_FATAL,
+                                                             module   = ?MODULE_STRING,
+                                                             function = _Func,
+                                                             line     = ?LINE,
+                                                             format   = _Format,
+                                                             message  = _Message})
+        end).
 -define(fatal(_Func,_MsgL),
-        leo_logger_client_message:fatal(#message_log{level    = ?LOG_LEVEL_FATAL,
-                                                     module   = ?MODULE_STRING,
-                                                     function = _Func,
-                                                     line     = ?LINE,
-                                                     format   = "~p",
-                                                     message  = [_MsgL]})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:critical(_MsgL);
+            _ ->
+                leo_logger_client_message:fatal(#message_log{level    = ?LOG_LEVEL_FATAL,
+                                                             module   = ?MODULE_STRING,
+                                                             function = _Func,
+                                                             line     = ?LINE,
+                                                             format   = "~p",
+                                                             message  = [_MsgL]})
+        end).
 -define(error(_Func,_Format,_Message),
-        leo_logger_client_message:error(#message_log{level    = ?LOG_LEVEL_ERROR,
-                                                     module   = ?MODULE_STRING,
-                                                     function = _Func,
-                                                     line     = ?LINE,
-                                                     format   = _Format,
-                                                     message  = _Message})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:error(_Format, _Message);
+            _ ->
+                leo_logger_client_message:error(#message_log{level    = ?LOG_LEVEL_ERROR,
+                                                             module   = ?MODULE_STRING,
+                                                             function = _Func,
+                                                             line     = ?LINE,
+                                                             format   = _Format,
+                                                             message  = _Message})
+        end).
 -define(error(_Func,_MsgL),
-        leo_logger_client_message:error(#message_log{level    = ?LOG_LEVEL_ERROR,
-                                                     module   = ?MODULE_STRING,
-                                                     function = _Func,
-                                                     line     = ?LINE,
-                                                     format   = "~p",
-                                                     message  = [_MsgL]})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:error(_MsgL);
+            _ ->
+                leo_logger_client_message:error(#message_log{level    = ?LOG_LEVEL_ERROR,
+                                                             module   = ?MODULE_STRING,
+                                                             function = _Func,
+                                                             line     = ?LINE,
+                                                             format   = "~p",
+                                                             message  = [_MsgL]})
+        end).
 -define(warn(_Func,_Format,_Message),
-        leo_logger_client_message:warn(#message_log{level    = ?LOG_LEVEL_WARN,
-                                                    module   = ?MODULE_STRING,
-                                                    function = _Func,
-                                                    line     = ?LINE,
-                                                    format   = _Format,
-                                                    message  = _Message})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:warning(_Format, _Message);
+            _ ->
+                leo_logger_client_message:warn(#message_log{level    = ?LOG_LEVEL_WARN,
+                                                            module   = ?MODULE_STRING,
+                                                            function = _Func,
+                                                            line     = ?LINE,
+                                                            format   = _Format,
+                                                            message  = _Message})
+        end).
 -define(warn(_Func,_MsgL),
-        leo_logger_client_message:warn(#message_log{level    = ?LOG_LEVEL_WARN,
-                                                    module   = ?MODULE_STRING,
-                                                    function = _Func,
-                                                    line     = ?LINE,
-                                                    format   = "~p",
-                                                    message  = [_MsgL]})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:warning(_MsgL);
+            _ ->
+                leo_logger_client_message:warn(#message_log{level    = ?LOG_LEVEL_WARN,
+                                                            module   = ?MODULE_STRING,
+                                                            function = _Func,
+                                                            line     = ?LINE,
+                                                            format   = "~p",
+                                                            message  = [_MsgL]})
+        end).
 -define(info(_Func,_Format,_Message),
-        leo_logger_client_message:info(#message_log{level    = ?LOG_LEVEL_INFO,
-                                                    module   = ?MODULE_STRING,
-                                                    function = _Func,
-                                                    line     = ?LINE,
-                                                    format   = _Format,
-                                                    message  = _Message})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:info(_Format, _Message);
+            _ ->
+                leo_logger_client_message:info(#message_log{level    = ?LOG_LEVEL_INFO,
+                                                            module   = ?MODULE_STRING,
+                                                            function = _Func,
+                                                            line     = ?LINE,
+                                                            format   = _Format,
+                                                            message  = _Message})
+        end).
 -define(info(_Func,_MsgL),
-        leo_logger_client_message:info(#message_log{level    = ?LOG_LEVEL_INFO,
-                                                    module   = ?MODULE_STRING,
-                                                    function = _Func,
-                                                    line     = ?LINE,
-                                                    format   = "~p",
-                                                    message  = [_MsgL]})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:info(_MsgL);
+            _ ->
+                leo_logger_client_message:info(#message_log{level    = ?LOG_LEVEL_INFO,
+                                                            module   = ?MODULE_STRING,
+                                                            function = _Func,
+                                                            line     = ?LINE,
+                                                            format   = "~p",
+                                                            message  = [_MsgL]})
+        end).
 -define(debug(_Func,_Format,_Message),
-        leo_logger_client_message:debug(#message_log{level    = ?LOG_LEVEL_DEBUG,
-                                                     module   = ?MODULE_STRING,
-                                                     function = _Func,
-                                                     line     = ?LINE,
-                                                     format   = _Format,
-                                                     message  = _Message})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:debug(_Format, _Message);
+            _ ->
+                leo_logger_client_message:debug(#message_log{level    = ?LOG_LEVEL_DEBUG,
+                                                             module   = ?MODULE_STRING,
+                                                             function = _Func,
+                                                             line     = ?LINE,
+                                                             format   = _Format,
+                                                             message  = _Message})
+        end).
 -define(debug(_Func,_MsgL),
-        leo_logger_client_message:debug(#message_log{level    = ?LOG_LEVEL_DEBUG,
-                                                     module   = ?MODULE_STRING,
-                                                     function = _Func,
-                                                     line     = ?LINE,
-                                                     format   = "~p",
-                                                     message  = [_MsgL]})).
+        case application:get_env(leo_logger, log_backend) of
+            {ok, lager} ->
+                lager:debug(_MsgL);
+            _ ->
+                leo_logger_client_message:debug(#message_log{level    = ?LOG_LEVEL_DEBUG,
+                                                             module   = ?MODULE_STRING,
+                                                             function = _Func,
+                                                             line     = ?LINE,
+                                                             format   = "~p",
+                                                             message  = [_MsgL]})
+        end).
